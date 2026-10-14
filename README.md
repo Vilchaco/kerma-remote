@@ -20,6 +20,14 @@ Todo vive en `C:\ProgramData\Kerma\remote`: `KermaRemote.ps1`, `config.json`, `r
 
 ## Instalar en una mesa
 
+**En una línea, lo más rápido.** Abre PowerShell en la mesa y pega esto. Se descarga solo, pide administrador y pregunta si es una prueba o una mesa y qué IPs permitir:
+
+```powershell
+irm https://raw.githubusercontent.com/Vilchaco/kerma-remote/main/install.ps1 | iex
+```
+
+Requiere que el repositorio sea público. Si ya estaba instalado, mantiene la clave y propone las mismas IPs.
+
 **Con doble clic, lo más fácil.** Descomprime el zip y abre el `.bat` que toque. Piden permisos de administrador y dejan la ventana abierta al terminar:
 
 | Archivo | Para qué |
