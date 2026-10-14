@@ -20,6 +20,19 @@ Todo vive en `C:\ProgramData\Kerma\remote`: `KermaRemote.ps1`, `config.json`, `r
 
 ## Instalar en una mesa
 
+**Con doble clic, lo más fácil.** Descomprime el zip y abre el `.bat` que toque. Piden permisos de administrador y dejan la ventana abierta al terminar:
+
+| Archivo | Para qué |
+|---|---|
+| `1 Instalar PRUEBA Bloc de notas.bat` | Prueba: pega en el Bloc de notas y solo acepta al PC de MCR |
+| `2 Probar en local.bat` | Pega `{ATEM_AUTO}` sin usar la red, en la app configurada |
+| `3 Instalar MESA Dealer App.bat` | Mesa real: pega en la Dealer App y solo acepta al PC de MCR |
+| `Desinstalar.bat` | Lo quita todo |
+
+Al terminar, la ventana muestra la clave. Cópiala en Companion. Reinstalar mantiene la misma clave; para cambiarla, usa `-NewKey`.
+
+**Desde PowerShell**, para elegir otras opciones:
+
 Ejecuta esto en PowerShell como administrador, desde la carpeta que tiene los dos scripts:
 
 ```powershell

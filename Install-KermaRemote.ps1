@@ -30,6 +30,7 @@ param(
     [ValidateSet('paste', 'type')][string]$Mode = 'paste',
     [string]$Key,
     [switch]$Force,
+    [switch]$NewKey,
     [switch]$Uninstall
 )
 
@@ -87,9 +88,10 @@ if ($Force -or -not (Test-Path -LiteralPath $cfgFile)) {
 }
 
 $keyFile = Join-Path $Dir 'remote.key'
-$newKey = $false
-if (-not $Key -and (Test-Path -LiteralPath $keyFile) -and -not $Force) {
-    Step 'remote.key ya existe: se mantiene la clave'
+$keyGenerated = $false
+if (-not $Key -and (Test-Path -LiteralPath $keyFile) -and -not $NewKey) {
+    Step 'remote.key ya existe: se mantiene la clave (usa -NewKey para cambiarla)'
+    $Key = (Get-Content -LiteralPath $keyFile -Raw).Trim()
 } else {
     if (-not $Key) {
         $Key = Read-Host 'Clave compartida con Companion (minimo 12 caracteres, vacio = generar una)'
@@ -98,7 +100,7 @@ if (-not $Key -and (Test-Path -LiteralPath $keyFile) -and -not $Force) {
             $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
             $bytes = New-Object byte[] 24; $rng.GetBytes($bytes)
             $Key = -join ($bytes | ForEach-Object { $chars[$_ % $chars.Length] })
-            $newKey = $true
+            $keyGenerated = $true
         }
     }
     if ($Key.Length -lt 12) { throw 'La clave tiene que tener al menos 12 caracteres.' }
@@ -138,7 +140,9 @@ $listening = [bool](Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAc
 Write-Host ''
 if ($listening) { Write-Host "Kerma Remote instalado y escuchando en el puerto $Port." -ForegroundColor Green }
 else { Write-Host "Instalado, pero el puerto $Port aun no escucha. Mira $Dir\remote.log." -ForegroundColor Yellow }
-if ($newKey) { Write-Host "Clave generada (copiala en Companion, cabecera X-Kerma-Key): $Key" -ForegroundColor Yellow }
+if ($keyGenerated) { Write-Host "Clave generada. Copiala en Companion, en la cabecera X-Kerma-Key:" -ForegroundColor Yellow }
+else { Write-Host 'Clave de este PC (cabecera X-Kerma-Key en Companion):' -ForegroundColor Yellow }
+Write-Host "  $Key" -ForegroundColor Yellow
 $ip = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -ne 'WellKnown' -and $_.IPAddress -notlike '169.254.*' } | Select-Object -First 1).IPAddress
 Write-Host "Prueba desde un PC permitido:"
 Write-Host "  Invoke-RestMethod http://${ip}:$Port/health -Headers @{ 'X-Kerma-Key' = '<clave>' }"
