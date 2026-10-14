@@ -35,6 +35,13 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Con "powershell -File" las listas llegan como un solo texto ("ip1,ip2"): se separan aqui
+$Allow = @($Allow | ForEach-Object { $_ -split '[,; ]+' } | Where-Object { $_ })
+foreach ($a in $Allow) {
+    $parsed = $null
+    if (-not [System.Net.IPAddress]::TryParse($a, [ref]$parsed)) { throw "IP no valida en -Allow: '$a'" }
+}
 $Dir      = 'C:\ProgramData\Kerma\remote'
 $TaskName = 'Kerma - Remote'
 $RuleName = 'Kerma Remote'
