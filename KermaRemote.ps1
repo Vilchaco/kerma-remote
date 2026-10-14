@@ -46,7 +46,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$KrVersion = '0.1.0'
+$KrVersion = '0.1.1'
 
 if (-not $DryRun) { Add-Type -AssemblyName System.Windows.Forms }
 if (-not $DryRun -and -not ('KrWin' -as [type])) {
@@ -149,27 +149,41 @@ function Set-KrFocus([IntPtr]$hwnd) {
     return ([KrWin]::GetForegroundWindow() -eq $hwnd)
 }
 
-function Send-KrText([string]$text, [string]$mode) {
-    if ($mode -eq 'type') {
-        # SendKeys usa {} + ^ % ~ ( ) [ ] como especiales: se escapan entre llaves
-        $sb = New-Object System.Text.StringBuilder
-        foreach ($ch in $text.ToCharArray()) {
-            if ('{}+^%~()[]'.IndexOf($ch) -ge 0) { [void]$sb.Append('{').Append($ch).Append('}') } else { [void]$sb.Append($ch) }
-        }
-        [System.Windows.Forms.SendKeys]::SendWait($sb.ToString())
-        return
+function Send-KrTyped([string]$text) {
+    # SendKeys usa {} + ^ % ~ ( ) [ ] como especiales: se escapan entre llaves
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($ch in $text.ToCharArray()) {
+        if ('{}+^%~()[]'.IndexOf($ch) -ge 0) { [void]$sb.Append('{').Append($ch).Append('}') } else { [void]$sb.Append($ch) }
     }
-    # paste: guardar el portapapeles, pegar el comando y dejarlo como estaba
+    [System.Windows.Forms.SendKeys]::SendWait($sb.ToString())
+}
+
+# Intenta poner texto en el portapapeles varias veces: RustDesk y otros programas
+# lo abren a menudo y Windows devuelve "Requested Clipboard operation did not succeed".
+function Set-KrClipboard([string]$text) {
+    for ($i = 1; $i -le 12; $i++) {
+        try { [System.Windows.Forms.Clipboard]::SetDataObject($text, $true, 3, 40); return $true }
+        catch { Start-Sleep -Milliseconds 120 }
+    }
+    return $false
+}
+
+# Devuelve como se envio: 'paste' o 'type' (si el portapapeles estaba ocupado).
+function Send-KrText([string]$text, [string]$mode) {
+    if ($mode -eq 'type') { Send-KrTyped $text; return 'type' }
     $saved = $null
     try { if ([System.Windows.Forms.Clipboard]::ContainsText()) { $saved = [System.Windows.Forms.Clipboard]::GetText() } } catch { $saved = $null }
-    [System.Windows.Forms.Clipboard]::SetDataObject($text, $true, 10, 50)
+    if (-not (Set-KrClipboard $text)) {
+        Write-Host '  (portapapeles ocupado: se escribe tecla a tecla)'
+        Send-KrTyped $text
+        return 'type'
+    }
     Start-Sleep -Milliseconds 60
     [System.Windows.Forms.SendKeys]::SendWait('^v')
     Start-Sleep -Milliseconds 300
-    try {
-        if ($null -ne $saved) { [System.Windows.Forms.Clipboard]::SetDataObject($saved, $true, 10, 50) }
-        else { [System.Windows.Forms.Clipboard]::Clear() }
-    } catch { Write-Host '  (no se pudo restaurar el portapapeles)' }
+    if ($null -ne $saved) { [void](Set-KrClipboard $saved) }
+    else { try { [System.Windows.Forms.Clipboard]::Clear() } catch { } }
+    return 'paste'
 }
 
 # Ejecuta un comando de la lista. Devuelve un hashtable con el resultado.
@@ -183,12 +197,12 @@ function Invoke-KrCommand([string]$id, $cfg) {
     $hwnd = $p.MainWindowHandle
     $prev = [KrWin]::GetForegroundWindow()
     if (-not (Set-KrFocus $hwnd)) { return @{ ok = $false; status = 409; error = 'no se pudo poner la app delante'; command = $id; window = $p.MainWindowTitle } }
-    Send-KrText $text $cfg.mode
+    $via = Send-KrText $text $cfg.mode
     if ($cfg.restoreFocus -and $prev -ne [IntPtr]::Zero -and $prev -ne $hwnd) {
         Start-Sleep -Milliseconds 150
         [void][KrWin]::SetForegroundWindow($prev)
     }
-    return @{ ok = $true; status = 200; command = $id; window = $p.MainWindowTitle }
+    return @{ ok = $true; status = 200; command = $id; window = $p.MainWindowTitle; via = $via }
 }
 
 # ---------------------------------------------------------------- arranque
@@ -267,7 +281,7 @@ while ($listener.IsListening) {
             }
             $lastRun[$id] = $now
             $r = Invoke-KrCommand $id $cfg
-            Write-KrLog ("COMANDO  ip={0}  puesto={1}  cmd={2}  ok={3}  {4}" -f $ip, $station, $id, $r.ok, ($(if ($r.ok) { "ventana='$($r.window)'" } else { $r.error })))
+            Write-KrLog ("COMANDO  ip={0}  puesto={1}  cmd={2}  ok={3}  {4}" -f $ip, $station, $id, $r.ok, ($(if ($r.ok) { "ventana='$($r.window)' via=$($r.via)" } else { $r.error })))
             $status = $r.status; $r.Remove('status')
             Send-KrReply $ctx $status $r; continue
         }

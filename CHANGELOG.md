@@ -1,5 +1,10 @@
 # Cambios
 
+## [0.1.1] - 2026-10-13 - Portapapeles ocupado
+
+- Si el portapapeles esta ocupado (por ejemplo por RustDesk), reintenta durante unos 2 s y, si sigue ocupado, escribe el comando tecla a tecla en vez de dar error interno. La respuesta y el registro dicen `via=paste` o `via=type`.
+- Probado en Blackjack 01: el pegado deja exactamente `{ATEM_AUTO}`, sin salto de linea.
+
 ## [0.1.0] - 2026-10-13 - Primera versión
 
 - Receptor HTTP en el puerto 10010 con lista de IPs permitidas, clave en cabecera, lista blanca de comandos y antirrepetición de 2 s.
