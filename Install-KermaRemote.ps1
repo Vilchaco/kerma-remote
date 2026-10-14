@@ -40,7 +40,8 @@ $ErrorActionPreference = 'Stop'
 $Allow = @($Allow | ForEach-Object { $_ -split '[,; ]+' } | Where-Object { $_ })
 foreach ($a in $Allow) {
     $parsed = $null
-    if (-not [System.Net.IPAddress]::TryParse($a, [ref]$parsed)) { throw "IP no valida en -Allow: '$a'" }
+    $ipPart = ($a -split '/')[0]
+    if (-not [System.Net.IPAddress]::TryParse($ipPart, [ref]$parsed) -or ($a -match '/' -and $a -notmatch '/([0-9]|[12][0-9]|3[0-2])$')) { throw "IP o rango no valido en -Allow: '$a'" }
 }
 $Dir      = 'C:\ProgramData\Kerma\remote'
 $TaskName = 'Kerma - Remote'

@@ -46,7 +46,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$KrVersion = '0.1.1'
+$KrVersion = '0.1.2'
 
 if (-not $DryRun) { Add-Type -AssemblyName System.Windows.Forms }
 if (-not $DryRun -and -not ('KrWin' -as [type])) {
@@ -70,7 +70,7 @@ public static class KrWin {
 # ---------------------------------------------------------------- configuracion
 $DefaultConfig = [ordered]@{
     port          = 10010
-    allow         = @('192.168.1.79')       # IPs que pueden mandar comandos
+    allow         = @('192.168.1.79')       # IPs o rangos (192.168.0.0/22) que pueden mandar comandos
     targetProcess = 'dealer-control'        # nombre del proceso, sin .exe
     mode          = 'paste'                 # paste = pegar (lo que piden los devs) | type = escribir
     restoreFocus  = $true                   # devolver el foco a la ventana que estaba delante
@@ -80,6 +80,31 @@ $DefaultConfig = [ordered]@{
 $ConfigFile = Join-Path $ConfigDir 'config.json'
 $KeyFile    = Join-Path $ConfigDir 'remote.key'
 $LogFile    = Join-Path $ConfigDir 'remote.log'
+
+# IP permitida: igual a una de la lista o dentro de un rango "red/bits" (192.168.0.0/22)
+function Test-KrAllowed([string]$ip, [string[]]$allow) {
+    if ($ip -eq '127.0.0.1') { return $true }
+    $addr = $null
+    if (-not [System.Net.IPAddress]::TryParse($ip, [ref]$addr)) { return $false }
+    $ipBytes = $addr.GetAddressBytes()
+    foreach ($a in $allow) {
+        if ($a -eq $ip) { return $true }
+        if ($a -notmatch '^([0-9.]+)/([0-9]{1,2})$') { continue }
+        $net = $null
+        if (-not [System.Net.IPAddress]::TryParse($Matches[1], [ref]$net)) { continue }
+        $bits = [int]$Matches[2]
+        $netBytes = $net.GetAddressBytes()
+        if ($netBytes.Length -ne $ipBytes.Length) { continue }
+        $ok = $true
+        for ($i = 0; $i -lt $ipBytes.Length -and $ok; $i++) {
+            $take = [Math]::Max(0, [Math]::Min(8, $bits - 8 * $i))
+            $mask = [byte]((0xFF -shl (8 - $take)) -band 0xFF)
+            if (($ipBytes[$i] -band $mask) -ne ($netBytes[$i] -band $mask)) { $ok = $false }
+        }
+        if ($ok) { return $true }
+    }
+    return $false
+}
 
 function Read-KrConfig {
     $c = $DefaultConfig
@@ -257,7 +282,7 @@ while ($listener.IsListening) {
         if (-not $station) { $station = '-' }
         $path = $req.Url.AbsolutePath.TrimEnd('/').ToLowerInvariant()
 
-        if (($cfg.allow -notcontains $ip) -and $ip -ne '127.0.0.1') {
+        if (-not (Test-KrAllowed $ip $cfg.allow)) {
             Write-KrLog "RECHAZADA  ip=$ip  puesto=$station  ruta=$path  (IP no permitida)"
             Send-KrReply $ctx 403 @{ ok = $false; error = 'ip no permitida' }; continue
         }
