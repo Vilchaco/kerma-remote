@@ -23,13 +23,15 @@ Todo vive en `C:\ProgramData\Kerma\remote`: `KermaRemote.ps1`, `config.json`, `r
 Ejecuta esto en PowerShell como administrador, desde la carpeta que tiene los dos scripts:
 
 ```powershell
-.\Install-KermaRemote.ps1 -Allow 192.168.1.79
+powershell -ExecutionPolicy Bypass -File .\Install-KermaRemote.ps1 -Allow 192.168.1.79
 ```
+
+Windows bloquea los scripts por defecto: por eso va `-ExecutionPolicy Bypass`.
 
 - Si no pasas `-Key`, te la pide. Si la dejas en blanco, genera una al azar y la muestra para que la copies en Companion.
 - `-TargetProcess notepad` apunta al Bloc de notas en lugar de la Dealer App, para pruebas.
 - `-Mode type` escribe el texto en lugar de pegarlo. Es el plan B por si la app no acepta pegar.
-- Para desinstalar: `.\Install-KermaRemote.ps1 -Uninstall`.
+- Para desinstalar: `powershell -ExecutionPolicy Bypass -File .\Install-KermaRemote.ps1 -Uninstall`.
 
 ## Escalera de pruebas
 
@@ -37,12 +39,13 @@ Haz los pasos en orden. Cada uno prueba una capa más.
 
 1. **En la mesa, sin red**, contra el Bloc de notas:
    ```powershell
-   powershell -STA -File C:\ProgramData\Kerma\remote\KermaRemote.ps1 -TestCommand atem_auto -Target notepad
+   powershell -STA -ExecutionPolicy Bypass -File C:\ProgramData\Kerma\remote\KermaRemote.ps1 -TestCommand atem_auto -Target notepad
    ```
 2. **Solo la red, sin tocar ventanas.** En la mesa:
    ```powershell
-   powershell -STA -File C:\ProgramData\Kerma\remote\KermaRemote.ps1 -DryRun
+   powershell -STA -ExecutionPolicy Bypass -File C:\ProgramData\Kerma\remote\KermaRemote.ps1 -DryRun
    ```
+   Antes, para la tarea **Kerma - Remote**, porque usa el mismo puerto.
    Y desde el PC de MCR:
    ```powershell
    Invoke-RestMethod http://192.168.0.151:10010/cmd/atem_auto -Method Post -Body '' -Headers @{ 'X-Kerma-Key' = '<clave>'; 'X-Kerma-Station' = 'MCR' }
@@ -57,7 +60,8 @@ Haz los pasos en orden. Cada uno prueba una capa más.
    - URL: `http://<IP-de-la-mesa>:10010/cmd/atem_auto`
    - Body: vacío
    - Header (JSON): `{"X-Kerma-Key": "<clave>", "X-Kerma-Station": "MCR"}`
-3. Crea una tecla por mesa: Craps 01 es `192.168.1.86` y Ruleta 01 es `192.168.0.156`.
+3. Si la tecla devuelve 411 (Length Required), cambia la acción a **GET** con la misma URL y cabeceras: también vale.
+4. Crea una tecla por mesa: Craps 01 es `192.168.1.86` y Ruleta 01 es `192.168.0.156`.
 
 La respuesta es un JSON con `ok: true` si ha ido bien, o con `ok: false` y un campo `error` si algo falla.
 
