@@ -1,0 +1,5 @@
+# datos locales de pruebas
+*.log
+remote.key
+config.json
+.DS_Store
