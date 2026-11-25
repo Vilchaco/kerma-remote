@@ -1,5 +1,11 @@
 # Cambios
 
+## [0.2.0] - 2026-11-25 - Reiniciar la Scarlett
+
+- Orden nueva `scarlett_reset`. Reinicia la Scarlett (Focusrite) de la mesa con el script de Kerma PC Setup `C:\ProgramData\Kerma\Kerma-ScarlettReset.ps1`, que usa la lógica del agente de David. Solo se acepta si el `config.json` tiene `"scarlettReset": true`. La ruta del script es fija, porque la carpeta de Kerma Remote la pueden cambiar los usuarios y esa otra no.
+- Responde cuando termina el reinicio (unos 5 a 15 s): `200` si se ha reiniciado, `409` si ya se estaba reiniciando y `500` si no se ha podido. `-DryRun` solo comprueba qué Scarlett usaría.
+- `/health` dice si Kerma Remote corre como administrador (`elevated`), que es lo que hace falta para reiniciarla.
+
 ## [0.1.2] - 2026-10-14 - Rangos de IP permitidos
 
 - `allow` acepta rangos además de IPs sueltas, por ejemplo `192.168.0.0/22` para toda la red del casino. La clave y la lista blanca de comandos siguen siendo obligatorias.

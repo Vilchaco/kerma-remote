@@ -96,4 +96,6 @@ La respuesta es un JSON con `ok: true` si ha ido bien, o con `ok: false` y un ca
 
 ## Añadir comandos
 
+**Reiniciar la Scarlett** (`scarlett_reset`, desde la 0.2.0) no pega nada: reinicia la interfaz de audio USB de la mesa. Se activa con `"scarlettReset": true` en el `config.json` (lo pone Kerma PC Setup) y lo hace el script `C:\ProgramData\Kerma\Kerma-ScarlettReset.ps1`, que instala Kerma PC Setup.
+
 Añade el comando a `commands` en el `config.json` de cada mesa, por ejemplo `"pause": "{PAUSE}"`, y reinicia la tarea **Kerma - Remote**. Antes de añadir cualquier comando, comprueba que no mete ni cambia un resultado de juego.
